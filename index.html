@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeGPT</title>
+    <link rel="icon" href="icons8-chatgpt.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=K2D:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&family=Titillium+Web:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.0.3/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/string-similarity@4.0.1/umd/string-similarity.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/compromise@14.14.0/builds/compromise.min.js"></script>
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="chatbox">
+            <header>
+                <select id="model">
+                    <option>GPT-4</option>
+                    <option>GPT-3.5-Turbo</option>
+                </select>
+                <button class="toggle-sandwich-menu" id="show-chat-history-list">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </header>
+            <div id="messages-box">
+                <div id="startup-bg"></div>
+            </div>
+            <form id="chat-bar">
+                <textarea id="user-input" placeholder="Type your message here..." rows="1"></textarea>
+                <button type="submit" id="submit-btn" disabled>
+                    <svg viewBox="0 0 12 13" width="20" height="20" fill="currentColor">
+                        <g fill-rule="evenodd" transform="translate(-450 -1073)">
+                            <path
+                                d="m458.371 1079.75-6.633.375a.243.243 0 0 0-.22.17l-.964 3.255c-.13.418-.024.886.305 1.175a1.08 1.08 0 0 0 1.205.158l8.836-4.413c.428-.214.669-.677.583-1.167-.06-.346-.303-.633-.617-.79l-8.802-4.396a1.073 1.073 0 0 0-1.183.14c-.345.288-.458.77-.325 1.198l.963 3.25c.03.097.118.165.22.17l6.632.375s.254 0 .254.25-.254.25-.254.25">
+                            </path>
+                        </g>
+                    </svg>
+                </button>
+            </form>
+        </div>
+        <div id="chat-history-list-box">
+            <header>
+                <button id="new-chat-btn" title="New Chat">
+                    <span></span>
+                    <span></span>
+                </button>
+                <button class="toggle-sandwich-menu" id="hide-chat-history-list">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </header>
+            <ul id="chat-history-list"></ul>
+        </div>
+    </div>
+</body>
+
+</html>
