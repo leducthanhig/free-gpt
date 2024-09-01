@@ -1,263 +1,79 @@
-const HEADERS = {
-    "authority": "free.netfly.top",
-    "method": "POST",
-    "path": "/api/openai/v1/chat/completions",
-    "scheme": "https",
-    "accept": "application/json, text/event-stream",
-    "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-US,en;q=0.9,vi;q=0.8",
-    "content-length": "1814",
-    "content-type": "application/json",
-    "origin": "https://free.netfly.top",
-    "priority": "u=1, i",
-    "referer": "https://free.netfly.top/",
-    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Google Chrome\";v=\"127\", \"Chromium\";v=\"127\"",
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": "\"Android\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-    "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36"
-};
-
+// Model's status: https://status.g4f.icu/status/ai
+const API = "https://free.netfly.top/api/openai/v1/chat/completions";
+const CORS_API_HOST = 'https://cors-proxy.fringe.zone/';
 const PAYLOADS = {
     "frequency_penalty": 0,
     "messages": [
         {
             "role": "system",
-            "content": "You're AI Assistant!"
+            "content": "You are ChatGPT, a large language model trained by OpenAI."
         }
     ],
     "model": "gpt-3.5-turbo",
-    "presence_penalty": 1,
+    "presence_penalty": 0,
     "stream": true,
-    "temperature": 0.8,
-    "top_p": 0.9
+    "temperature": 0.5,
+    "top_p": 1
 };
 
-const API = "https://free.netfly.top/api/openai/v1/chat/completions";
-const CORS_API_HOST = 'https://cors-proxy.fringe.zone/';
-
-class NLP {
-    similiary(str1, str2) {
-        return stringSimilarity.compareTwoStrings(str1, str2);
-    }
-
-    removePunctuation(text) {
-        return text.replace(/[^\w\s]/g, '');
-    }
-}
-
 class GPT {
-    constructor(model_name = 'gpt-4', instructor = "", top_p = 0.9, temperature = 0.7, presence_penalty = 0, frequency_penalty = 0, q = 'user', a = 'assistant', payloads = PAYLOADS, api = API, headers = HEADERS) {
-        this.model_name = model_name;
-        this.instructor = instructor;
-        this.top_p = top_p;
-        this.temperature = temperature;
-        this.presence_penalty = presence_penalty;
-        this.frequency_penalty = frequency_penalty;
+    constructor(model = 'gpt-4', instructor = "", q = "user", a = "assistant") {
         this.q = q;
         this.a = a;
-        this.payloads = payloads;
-        this.api = api;
-        this.headers = headers;
-
-        if (this.instructor != "") {
-            this.payloads['messages'][0]['content'] = this.instructor;
+        PAYLOADS.model = model;
+        if (instructor) {
+            PAYLOADS.messages[0].content = instructor;
         }
-        this.payloads.presence_penalty = this.presence_penalty;
-        this.payloads.temperature = this.temperature;
-        this.payloads.top_p = this.top_p;
-        this.payloads.frequency_penalty = this.frequency_penalty;
-        this.payloads.model = this.model_name;
-
-        this.activateMemoryManager();
     }
 
     async inference() {
-        let response = '';
-        try {
-            response = await fetch(CORS_API_HOST + this.api, {
-                method: 'POST',
-                headers: this.headers,
-                body: JSON.stringify(this.payloads)
-            });
-        }
-        catch (err) {
-            console.log(err);
-            return 'An unexpected error occured, please try again!';
-        }
-        const response_text = await response.text();
-        const response_lines = response_text.split('data:');
-        let response_final = '', content;
-        for (const line of response_lines) {
+        let tries = 7;
+        while (tries) {
             try {
-                content = JSON.parse(line)['choices'][0]['delta']['content'];
-                if (content) response_final += content;
+                const response = await fetch(CORS_API_HOST + API, {
+                    method: 'POST',
+                    body: JSON.stringify(PAYLOADS)
+                });
+                const response_text = await response.text();
+                if (response_text.includes('You are asking too frequently, please take a break')) {
+                    throw new Error('Too many requests!');
+                }
+                const response_lines = response_text.split('data:');
+                let response_final = '';
+                for (const line of response_lines) {
+                    try {
+                        const content = JSON.parse(line)['choices'][0]['delta']['content'];
+                        if (content) response_final += content;
+                    }
+                    catch {
+                        continue;
+                    }
+                }
+                if (response_final.includes('Sorry, your request has been denied.')) {
+                    throw new Error('Request denied!');
+                }
+                if (!response_final) {
+                    throw new Error('Response is invalid!');
+                }
+                if (PAYLOADS.model == 'gpt-4' && response_final.startsWith('Answer: """')) {
+                    return response_final.slice('Answer: """'.length, -3);
+                }
+                return response_final;
             }
-            catch {
-                continue;
+            catch (err) {
+                console.log(err);
+                if (!(--tries)) {
+                    return 'An unexpected error occured, please try again!';
+                }
             }
         }
-        if (response_final.includes('Sorry, your request has been denied.')) {
-            return await this.inference();
-        }
-        if (this.model_name == 'gpt-4' && response_final.startsWith('Answer: """')) {
-            return response_final.slice('Answer: """'.length, -3);
-        }
-        return response_final;
-    }
-
-    activateMemoryManager() {
-        this.memories = new Map();
-        this.temp_mem_backup = new Map();
-        this.activate_local_memories = new ActivateLocalMemories(this.memories);
-        this.short_context_manager = new ShortContextManager(this.temp_mem_backup, this.q, this.a);
-        this.local_mem_writer = new WriteNewLocalMemories(this.memories, this.temp_mem_backup, this.q, this.a);
     }
 
     async prompt(user_input) {
-        let llm_output = '';
-        if (this.activate_local_memories) {
-            const backup = this.payloads.messages;
-            this.payloads.messages = [
-                {
-                    "role": "system",
-                    "content": "You're AI Assistant!"
-                }
-            ];
-            const local_memories_activated = this.activate_local_memories.activateLocalMemories(user_input);
-            const short_context_activated = this.short_context_manager.activateShortContextMem();
-
-            for (const data of local_memories_activated) {
-                const idx = data.indexOf(':');
-                this.payloads.messages.push({ 'role': data.slice(0, idx), 'content': data.slice(idx + 1) });
-            }
-            for (const data of short_context_activated) {
-                const idx = data.indexOf(':');
-                this.payloads.messages.push({ 'role': data.slice(0, idx), 'content': data.slice(idx + 1) });
-            }
-            this.payloads.messages.push({ 'role': this.q, 'content': user_input });
-            backup.push({ 'role': this.q, 'content': user_input });
-
-            llm_output = await this.inference();
-
-            backup.push({ 'role': this.a, 'content': llm_output });
-            this.payloads.messages = backup;
-
-            this.local_mem_writer.writeNewLocalMem(user_input, llm_output);
-            this.short_context_manager.saveToShortContextMem(user_input, llm_output);
-        }
-        else {
-            this.payloads.messages.push({ 'role': this.q, 'content': user_input });
-
-            llm_output = await this.inference(user_input);
-
-            this.payloads.messages.push({ 'role': this.a, 'content': llm_output });
-        }
+        PAYLOADS.messages.push({ 'role': this.q, 'content': user_input });
+        const llm_output = await this.inference();
+        PAYLOADS.messages.push({ 'role': this.a, 'content': llm_output });
         return llm_output;
-    }
-}
-
-class ActivateLocalMemories {
-    constructor(memories, limit_mem_storage = 4) {
-        this.memories = memories;
-        this.limit_mem_storage = limit_mem_storage;
-        this.nlp = new NLP();
-    }
-
-    activateLocalMemories(inp) {
-        if (!this.memories.length) return [];
-
-        const memories_act_scores = new Map();
-        for (const mem of this.memories.keys()) {
-            memories_act_scores.set(mem, this.nlp.similiary(inp, mem));
-        }
-        let most_mem_score = 0, most_mem = "", score;
-        for (const mem of this.memories.keys()) {
-            score = memories_act_scores.get(mem);
-            if (score > most_mem_score) {
-                most_mem_score = score;
-                most_mem = mem;
-            }
-        }
-        const most_memories = this.memories.get(most_mem);
-        if (most_memories.length > this.limit_mem_storage * 2) {
-            const randomPos = Math.round(Math.random() * (most_memories.length - this.limit_mem_storage * 2));
-            return most_memories.slice(randomPos, randomPos + this.limit_mem_storage);
-        }
-        return most_memories;
-    }
-}
-
-class WriteNewLocalMemories {
-    constructor(memories, temp_mem_backup, q = "Human's say memories", a = "Bot's say memories", max_mem_context_towrite = 4) {
-        this.memories = memories;
-        this.temp_mem_backup = temp_mem_backup;
-        this.max_mem_context_towrite = max_mem_context_towrite;
-        this.q = q;
-        this.a = a;
-        this.nlp = new NLP();
-        this.context = new Array();
-    }
-
-    writeMem(inp, ans, new_mem_name) {
-        const memories_act_scores = new Map();
-        for (const mem of this.memories.keys()) {
-            memories_act_scores.set(mem, this.nlp.similiary(inp.replace(this.q, "").replace(this.a, "").split(' ').slice(0, 10), mem));
-        }
-        let most_mem_score = 0, most_mem = "", score;
-        for (const mem of this.memories.keys()) {
-            score = memories_act_scores.get(mem);
-            if (score > most_mem_score) {
-                most_mem_score = score;
-                most_mem = mem;
-            }
-        }
-        if (most_mem_score > 0.5) {
-            this.memories.get(most_mem).push(inp, ans);
-        }
-        else {
-            this.memories.set(new_mem_name, [inp, ans]);
-        }
-    }
-
-    writeNewLocalMem(inp, ans) {
-        this.context.push(this.q + ': ' + inp);
-        this.context.push(this.a + ': ' + ans);
-
-        if (this.context.length > this.max_mem_context_towrite) {
-            let mem_name = this.nlp.removePunctuation(this.context[0].replace(this.q, "").replace(this.a, ""));
-            mem_name = mem_name.split(' ').slice(0, 10);
-
-            for (let i = 0; i < this.max_mem_context_towrite - 1; i += 2) {
-                this.writeMem(this.context[i], this.context[i + 1], mem_name);
-            }
-            this.context = this.context.slice(this.context.length - this.max_mem_context_towrite);
-        }
-    }
-}
-
-class ShortContextManager {
-    constructor(temp_mem_backup, q = "Human's context say", a = "Bot's context say", max_limit_short_mem_contxt = 4) {
-        this.temp_mem_backup = temp_mem_backup;
-        this.max_limit_short_mem_contxt = max_limit_short_mem_contxt;
-        this.q = q;
-        this.a = a;
-        this.context = new Array();
-    }
-
-    saveToShortContextMem(inp, ans) {
-        this.context.push(this.q + ': ' + inp);
-        this.context.push(this.a + ': ' + ans);
-
-        if (this.context.length > this.max_limit_short_mem_contxt) {
-            this.context = this.context.slice(this.context.length - this.max_limit_short_mem_contxt);
-        }
-    }
-
-    activateShortContextMem() {
-        return this.context;
     }
 }
 
@@ -307,7 +123,7 @@ function loadChatHistory(title) {
             }
             hljs.highlightAll();
             messagesBox.scrollTop = messagesBox.scrollHeight;
-            chatbot.payloads.messages = messages;
+            PAYLOADS.messages = messages;
             break;
         }
     }
@@ -317,7 +133,7 @@ function saveChatHistory(title) {
     const chatData = JSON.parse(localStorage.getItem('chatData'));
     for (const data of chatData) {
         if (data.title == title) {
-            data.messages = chatbot.payloads.messages;
+            data.messages = PAYLOADS.messages;
             localStorage.setItem('chatData', JSON.stringify(chatData));
             break;
         }
@@ -336,11 +152,9 @@ function addChatHistory(title) {
     li.setAttribute('class', 'active');
     li.addEventListener('click', requestLoadChatHistory);
 
-    let cnt = 0;
-    for (const data of chatData) {
-        cnt += (data.title == title);
-    }
-    if (cnt) title += ` (${cnt})`;
+    title = handleDuplicatedTitle(nlp(title).terms().forEach((w) => {
+        if (!w.has('#Determiner') && !w.has('#Conjunction') && !w.has('#Preposition')) w.toTitleCase();
+    }).text(), chatData);
     chatData.unshift({ 'title': title, 'messages': '' });
     localStorage.setItem('chatData', JSON.stringify(chatData));
 
@@ -371,6 +185,8 @@ function addChatHistory(title) {
 
 function renameChatHistory(e) {
     function reset(title) {
+        document.removeEventListener('focusout', handleFocusEvent);
+        
         btn.parentElement.title = title;
         btn.parentElement.className = isActive ? 'active' : '';
 
@@ -419,6 +235,12 @@ function renameChatHistory(e) {
         reset(document.querySelector('.editing').title);
     }
 
+    function handleFocusEvent(e) {
+        if (!e.relatedTarget || (e.relatedTarget.className != 'option-btn' && e.relatedTarget != btn.previousElementSibling.firstElementChild)) {
+            cancelRename(e);
+        }
+    }
+
     e.stopPropagation();
 
     const btn = e.currentTarget;
@@ -434,11 +256,7 @@ function renameChatHistory(e) {
             cancelRename(e);
         }
     });
-    btn.previousElementSibling.firstElementChild.addEventListener('focusout', (e) => {
-        if (e.relatedTarget.className != 'option-btn') {
-            cancelRename(e);
-        }
-    });
+    document.addEventListener('focusout', handleFocusEvent);
     btn.previousElementSibling.firstElementChild.focus();
 
     btn.title = 'Ok';
@@ -479,22 +297,43 @@ function requestLoadChatHistory(e) {
     }
 }
 
+function handleDuplicatedTitle(title, chatData) {
+    const exist = [];
+    for (const data of chatData) {
+        if (data.title == title) {
+            exist.push(0);
+            continue;
+        }
+        const tmp = data.title.replace(title, '').match(/(?<=^\s\()(?:\d+)(?=\)$)/);
+        if (tmp) {
+            exist.push(Number(tmp[0]));
+        }
+    }
+    if (exist.length) {
+        exist.sort();
+        for (let i = 0; i < exist.length; i++) {
+            if (i != exist[i]) {
+                if (i) return title + ` (${i})`;
+                return title;
+            }
+        }
+        return title + ` (${exist.length})`;
+    }
+    return title;
+}
+
 function displayContents(queue) {
     function displayContent(data) {
-        resetDisplayProperty(data.curNode);
-        data.curNode.setAttribute('class', 'cursor');
+        resetDisplayProperty(data.curNode.parentElement);
+        data.curNode.parentElement.classList.add('cursor');
         let i = 0;
         const id = setInterval(() => {
-            data.curNode.innerHTML += data.content[i++];
+            data.curNode.textContent += data.content[i++];
             messagesBox.scrollTop = messagesBox.scrollHeight;
 
             if (i == data.content.length) {
-                data.curNode.removeAttribute('class');
+                data.curNode.parentElement.classList.remove('cursor');
                 clearInterval(id);
-
-                if (data.curNode.parentElement && data.curNode.parentElement.nodeName == 'PRE') {
-                    hljs.highlightElement(data.curNode.parentElement);
-                }
 
                 if (queue.length) {
                     displayContent(queue.shift());
@@ -508,14 +347,22 @@ function displayContents(queue) {
     displayContent(queue.shift());
 }
 
-function getInnerTexts(queue, curNode) {
+function getTextChilds(queue, curNode) {
     function dfs(curNode) {
+        if (curNode.nodeName == 'CODE') {
+            if (curNode.className.includes('language')) {
+                hljs.highlightElement(curNode);
+            }
+            else {
+                curNode.classList.add('hljs');
+            }
+        }
         for (const child of curNode.childNodes) {
             if (child.nodeType == 3) {
                 const content = child.nodeValue;
                 if (content == '\n') continue;
                 child.nodeValue = '';
-                queue.push({ 'curNode': curNode, 'content': content });
+                queue.push({ 'curNode': child, 'content': content });
             }
             else {
                 child.style.setProperty('display', 'none');
@@ -541,7 +388,7 @@ const hideChatHistoryList = document.getElementById('hide-chat-history-list');
 const chatHistoryList = document.getElementById('chat-history-list');
 
 document.getElementById('model').addEventListener('change', (e) => {
-    chatbot.payloads['model'] = chatbot.model_name = e.target.value.toLowerCase();
+    PAYLOADS.model = e.target.value.toLowerCase();
 });
 
 userInput.parentElement.addEventListener('submit', (e) => {
@@ -580,7 +427,7 @@ userInput.parentElement.addEventListener('submit', (e) => {
                 output_model.style.setProperty('display', 'none');
                 output_model.append(...parser.parseFromString(marked(res), 'text/html').children[0].children[1].childNodes);
 
-                getInnerTexts(queue, output_model);
+                getTextChilds(queue, output_model);
                 output_model.style.removeProperty('display');
                 displayContents(queue);
             })
@@ -680,7 +527,7 @@ document.getElementById('new-chat-btn').addEventListener('click', () => {
     if (!document.getElementById('startup-bg')) {
         document.querySelector('.active').removeAttribute('class');
         messagesBox.innerHTML = '<div id="startup-bg"></div>';
-        chatbot.payloads.messages = [
+        PAYLOADS.messages = [
             {
                 "role": "system",
                 "content": "You're AI Assistant!"
