@@ -484,27 +484,23 @@ userInput.addEventListener('input', (e) => {
 });
 
 showChatHistoryList.addEventListener('click', () => {
-    chatHistoryList.parentElement.style.display = 'flex';
+    chatHistoryList.parentElement.classList.add('open');
     showChatHistoryList.style.display = 'none';
 
-    if (window.innerWidth < 550) {
-        messagesBox.parentElement.style.display = 'none';
-        chatHistoryList.parentElement.style.width = '100%';
-    }
-    userInput.style.height = 'fit-content';
-    userInput.style.height = userInput.scrollHeight + 'px';
+    setTimeout(() => {
+        userInput.style.height = 'fit-content';
+        userInput.style.height = userInput.scrollHeight + 'px';
+    }, 500);
 });
 
 hideChatHistoryList.addEventListener('click', () => {
-    chatHistoryList.parentElement.style.display = 'none';
+    chatHistoryList.parentElement.classList.remove('open');
     showChatHistoryList.style.display = 'flex';
 
-    if (window.innerWidth < 550) {
-        messagesBox.parentElement.style.display = 'flex';
-        chatHistoryList.parentElement.style.width = '';
-    }
-    userInput.style.height = 'fit-content';
-    userInput.style.height = userInput.scrollHeight + 'px';
+    setTimeout(() => {
+        userInput.style.height = 'fit-content';
+        userInput.style.height = userInput.scrollHeight + 'px';
+    }, 500);
 });
 
 window.addEventListener('resize', () => {

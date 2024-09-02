@@ -64,6 +64,7 @@ option {
 #container {
     height: 100%;
     display: flex;
+    overflow: hidden;
 }
 
 #chatbox {
@@ -74,6 +75,7 @@ option {
     height: 100%;
     font-family: "K2D", sans-serif;
     margin: 0 auto;
+    overflow: hidden;
 }
 
 #chatbox header {
@@ -114,11 +116,15 @@ option {
 }
 
 #chat-history-list-box {
-    display: none;
+    display: flex;
     flex-direction: column;
-    width: 250px;
-    min-width: 200px;
+    width: 0;
     background-color: var(--header-footer-color);
+    transition: all .5s;
+}
+
+#chat-history-list-box.open {
+    width: 250px;
 }
 
 #chat-history-list-box header {
@@ -180,7 +186,6 @@ option {
     padding: 5px 10px;
     padding-right: 0;
     white-space: nowrap;
-    overflow: hidden;
 }
 
 .active,
@@ -427,5 +432,11 @@ option {
 
     100% {
         opacity: 0;
+    }
+}
+
+@media screen and (max-width: 550px) {
+    #chat-history-list-box.open {
+        width: 100%;
     }
 }
