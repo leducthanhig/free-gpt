@@ -421,10 +421,6 @@ const showChatHistoryList = document.getElementById('show-chat-history-list');
 const hideChatHistoryList = document.getElementById('hide-chat-history-list');
 const chatHistoryList = document.getElementById('chat-history-list');
 
-document.getElementById('model').addEventListener('change', (e) => {
-    PAYLOADS.model = e.target.value.toLowerCase();
-});
-
 userInput.parentElement.addEventListener('submit', (e) => {
     e.preventDefault();
     let input = userInput.value.trim();
