@@ -45,7 +45,9 @@ body {
 }
 
 code {
-    font-size: larger;
+    font-family: "Noto Sans Mono", monospace;
+    font-size: small;
+    border-radius: 10px;
 }
 
 option {
@@ -298,11 +300,13 @@ option {
     margin-left: auto;
     margin-right: 15px;
     padding: 10px 20px;
+    overflow-wrap: break-word;
 }
 
 .model-message {
     margin: 16px 35px 40px 15px;
     padding-left: 40px;
+    overflow-wrap: break-word;
 }
 
 .model-message::before {

@@ -1,6 +1,30 @@
-// Model's status: https://status.g4f.icu/status/ai
-const API = "https://free.netfly.top/api/openai/v1/chat/completions";
-const CORS_API_HOST = 'https://cors-proxy.fringe.zone/';
+const HEADERS = {
+    "authority": "free.netfly.top",
+    "method": "POST",
+    "path": "/api/openai/v1/chat/completions",
+    "scheme": "https",
+    "accept": "application/json, text/event-stream",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en,vi;q=0.9,en-US;q=0.8",
+    "content-length": "638",
+    "content-type": "application/json",
+    "origin": "https://free.netfly.top",
+    "priority": "u=1, i",
+    "referer": "https://free.netfly.top/",
+    "sec-ch-ua": "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Microsoft Edge\";v=\"128\"",
+    "sec-ch-ua-arch": "\"x86\"",
+    "sec-ch-ua-bitness": "\"64\"",
+    "sec-ch-ua-full-version": "\"128.0.2739.54\"",
+    "sec-ch-ua-full-version-list": "\"Chromium\";v=\"128.0.6613.114\", \"Not;A=Brand\";v=\"24.0.0.0\", \"Microsoft Edge\";v=\"128.0.2739.54\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-model": "\"\"",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-platform-version": "\"15.0.0\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0"
+};
 const PAYLOADS = {
     "frequency_penalty": 0,
     "messages": [
@@ -30,8 +54,9 @@ class GPT {
         let tries = 7;
         while (tries) {
             try {
-                const response = await fetch(CORS_API_HOST + API, {
+                const response = await fetch('./chat', {
                     method: 'POST',
+                    headers: HEADERS,
                     body: JSON.stringify(PAYLOADS)
                 });
                 const response_text = await response.text();
@@ -186,7 +211,7 @@ function addChatHistory(title) {
 function renameChatHistory(e) {
     function reset(title) {
         document.removeEventListener('focusout', handleFocusEvent);
-        
+
         btn.parentElement.title = title;
         btn.parentElement.className = isActive ? 'active' : '';
 
@@ -273,6 +298,15 @@ function renameChatHistory(e) {
 function deleteChatHistory(e) {
     e.stopPropagation();
     if (confirm('Do you want to delete this chat history?')) {
+        if (document.querySelector('ul .active') == e.currentTarget.parentElement) {
+            messagesBox.innerHTML = '<div id="startup-bg"></div>';
+            PAYLOADS.messages = [
+                {
+                    "role": "system",
+                    "content": "You're AI Assistant!"
+                }
+            ];
+        }
         const chatData = JSON.parse(localStorage.getItem('chatData'));
         for (let i = 0; i < chatData.length; i++) {
             if (chatData[i].title == e.currentTarget.parentElement.title) {
@@ -310,7 +344,7 @@ function handleDuplicatedTitle(title, chatData) {
         }
     }
     if (exist.length) {
-        exist.sort();
+        exist.sort((a, b) => a - b);
         for (let i = 0; i < exist.length; i++) {
             if (i != exist[i]) {
                 if (i) return title + ` (${i})`;
