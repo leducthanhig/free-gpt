@@ -178,7 +178,7 @@ function addChatHistory(title) {
     li.addEventListener('click', requestLoadChatHistory);
 
     title = handleDuplicatedTitle(nlp(title).terms().forEach((w) => {
-        if (!w.has('#Determiner') && !w.has('#Conjunction') && !w.has('#Preposition')) w.toTitleCase();
+        if (!w.has('#Determiner') && !w.has('#Conjunction') && !w.has('#Preposition')) w.toLowerCase().toTitleCase();
     }).text(), chatData);
     chatData.unshift({ 'title': title, 'messages': '' });
     localStorage.setItem('chatData', JSON.stringify(chatData));
